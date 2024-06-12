@@ -10,6 +10,7 @@ app = Flask(__name__)
 video_files = {
     "video1": "video1.mp4",
     "video2": "video2.mp4",
+    "video3": "video3.mp4",
 
 }
 
@@ -23,6 +24,7 @@ def initialize_player(video_file):
     media = vlc.Media(video_file)
     media_player = vlc.MediaPlayer()
     media_player.set_media(media)
+    media_player.set_fullscreen(True)
     media_player.play()
 
 
