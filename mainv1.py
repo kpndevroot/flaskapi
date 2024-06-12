@@ -8,8 +8,8 @@ app = Flask(__name__)
 
 
 video_files = {
-    "video1": "video1.mp4",
-    "video2": "video2.mp4",
+    "video1": "./videos/video1.mp4",
+    "video2": "./videos/video2.mp4",
 
 }
 

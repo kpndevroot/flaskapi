@@ -1,25 +1,35 @@
 from flask import Flask, jsonify, request
 from pyngrok import ngrok
 import firebase_admin
-from firebase_admin import credentials
 from firebase_admin import firestore
-import vlc
+from firebase_admin import credentials, storage, initialize_app, firestore
 from vlc import State
+import os
+import vlc
+
+video_files = {}
+media_player = None
+
 app = Flask(__name__)
 
 
-video_files = {
-    "video1": "video1.mp4",
-    "video2": "video2.mp4",
-    "video3": "video3.mp4",
-}
+cred = credentials.Certificate("credential.json")
+firebase_app = initialize_app(cred, {
+    'storageBucket': 'pdcdb-ed421.appspot.com'
+})
+storage_client = storage.bucket(app=firebase_app)
+db = firestore.client()
 
-media_player = None
 
+folder_name = "videos"
 
+local_directory = "./videos/"
+
+# Ensure local directory exists
+os.makedirs(local_directory, exist_ok=True)
+
+# Set ngrok authentication token
 ngrok.set_auth_token("2fbK3XRIsUtUAbECqw6NoKbLE0K_sL6ikr327mkm7NZBmAod")
-
-
 def initialize_player(video_file):
     global media_player
     if media_player is not None:
@@ -39,13 +49,6 @@ def initialize_player(video_file):
             # media_player.previous() 
 
         
-
-
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("credential.json")  # Replace with your service account key
-firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 
 def create_ngrok_tunnel(port):
@@ -78,16 +81,55 @@ def create_ngrok_tunnel(port):
         print("Error creating ngrok tunnel:", e)
 
 
+
+def download_all_videos():
+    print('Downloading... all.. Videos...')
+    global video_files  # Accessing global variable
+    # Retrieve list of blobs (files) in the specified folder
+    blobs = storage_client.list_blobs(prefix=folder_name)
+
+    # Clear previous data in video_files
+    video_files.clear()
+
+    # Initialize count for numbering videos
+    count = 1
+
+    # Download each video file and ensure unique filenames
+    for blob in blobs:
+        # Extract the file name from the blob path
+        filename = os.path.basename(blob.name)
+
+        # Generate the new filename with the prefix and count
+        new_filename = f"video{count}.mp4"
+
+        # Download the video file to local storage
+        blob.download_to_filename(os.path.join(local_directory, new_filename))
+        video_files[f"video{count}"] =  os.path.join(local_directory, new_filename)
+        video_files= video_files
+        print(f"Downloaded {new_filename}")
+
+        # Increment count for the next video
+        count += 1
+
+    print("All videos downloaded successfully.")
+    print("videofiles",video_files)
 @app.route('/hello', methods=['GET'])
 def helloworld():
     print('Hello')
     data = {"data": "Hello World"}
     return jsonify(data)
 
+@app.route('/download_videos', methods=['GET'])
+def download_videos():
+    print('Downloading... Videos')
+    download_all_videos()
+    return jsonify({"message": "Videos downloaded successfully.", "video_files": video_files})
 
 @app.route('/play/<video_name>', methods=['GET'])
+
 def play(video_name):
-    print('Play')
+    print(video_files)
+    print('Play',video_name)
     video_file = video_files.get(video_name)
     if video_file:
         initialize_player(video_file)
@@ -120,4 +162,5 @@ def plays():
 if __name__ == "__main__":
     port = 5000  # Change to the port your Flask app runs on
     create_ngrok_tunnel(port)
+    download_all_videos()
     app.run(debug=True)
