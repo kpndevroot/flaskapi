@@ -4,6 +4,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 import vlc
+from vlc import State
 app = Flask(__name__)
 
 
@@ -11,12 +12,14 @@ video_files = {
     "video1": "video1.mp4",
     "video2": "video2.mp4",
     "video3": "video3.mp4",
-
 }
 
 media_player = None
 
+
 ngrok.set_auth_token("2fbK3XRIsUtUAbECqw6NoKbLE0K_sL6ikr327mkm7NZBmAod")
+
+
 def initialize_player(video_file):
     global media_player
     if media_player is not None:
@@ -26,6 +29,16 @@ def initialize_player(video_file):
     media_player.set_media(media)
     media_player.set_fullscreen(True)
     media_player.play()
+    print("there is the state")
+    while True:
+        value = media_player.get_state()
+        # print(value)
+        if value == State.Ended:
+            media.release()
+            initialize_player(video_file)
+            # media_player.previous() 
+
+        
 
 
 # Initialize Firebase Admin SDK
@@ -33,6 +46,7 @@ cred = credentials.Certificate("credential.json")  # Replace with your service a
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
+
 
 def create_ngrok_tunnel(port):
     try:
@@ -70,6 +84,7 @@ def helloworld():
     data = {"data": "Hello World"}
     return jsonify(data)
 
+
 @app.route('/play/<video_name>', methods=['GET'])
 def play(video_name):
     print('Play')
@@ -89,10 +104,12 @@ def pause():
         media_player.pause()
     data = {"data": "Paused"}
     return jsonify(data)
-@app.route('/p', methods=['GET'])
+
+
+@app.route('/p', methods=['GET', 'POST'])
 def plays():
     print('Play')
-    if request.method == 'GET':
+    if request.method == 'GET' or request.method == 'POST':
         if media_player is None:
             initialize_player()
         media_player.play()
