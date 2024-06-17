@@ -43,7 +43,7 @@ This is a Flask API for streaming video and controlling playback using endpoints
 ```bash
    pip install -r requirements.txt
 ```
-
+   
 ## Running the Application
 
 To run the Flask application using Gunicorn, use the following command:
