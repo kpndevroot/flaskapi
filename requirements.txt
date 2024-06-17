@@ -2,3 +2,4 @@ flask
 pyngrok
 firebase-admin
 python-vlc
+gunicorn
